@@ -1,2 +1,20 @@
 Diccionario_Variables_Alumnos.xlsx
 Prestamos_Data_Alumnos_v5.xlsx
+
+# Entornos virtuales
+venv/
+.venv/
+
+# Archivos temporales de Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Archivos temporales de Jupyter
+.ipynb_checkpoints/
+
+# Archivos temporales de descarga
+*.crdownload
+
+# Variables y credenciales locales
+.env
