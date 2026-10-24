@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 import pymysql
+import requests
 
 app = Flask(__name__)
 
@@ -123,6 +124,118 @@ def crear_prestamo():
     return jsonify({
         "mensaje": "Prestamo creado correctamente"
     }), 201
+
+    @app.put("/prestamos/<int:row_id>")
+def actualizar_prestamo(row_id):
+
+    datos = request.json
+
+    conexion = get_connection()
+
+    with conexion.cursor() as cursor:
+
+        cursor.execute(
+            """
+            UPDATE clientes_credito
+            SET edad=%s,
+                ingresos=%s,
+                monto_inicial=%s
+            WHERE row_id=%s
+            """,
+            (
+                datos["edad"],
+                datos["ingresos"],
+                datos["monto_inicial"],
+                row_id
+            )
+        )
+
+        conexion.commit()
+
+    conexion.close()
+
+    return jsonify({
+        "mensaje": "Prestamo actualizado correctamente"
+    })
+
+@app.delete("/prestamos/<int:row_id>")
+def eliminar_prestamo(row_id):
+
+    conexion = get_connection()
+
+    with conexion.cursor() as cursor:
+
+        cursor.execute(
+            """
+            DELETE FROM clientes_credito
+            WHERE row_id=%s
+            """,
+            (row_id,)
+        )
+
+        conexion.commit()
+
+    conexion.close()
+
+    return jsonify({
+        "mensaje": "Prestamo eliminado correctamente"
+    })
+
+@app.put("/prestamos/<int:row_id>")
+def actualizar_prestamo(row_id):
+
+    datos = request.json
+
+    conexion = get_connection()
+
+    with conexion.cursor() as cursor:
+
+        cursor.execute(
+            """
+            UPDATE clientes_credito
+            SET edad=%s,
+                ingresos=%s,
+                monto_inicial=%s
+            WHERE row_id=%s
+            """,
+            (
+                datos["edad"],
+                datos["ingresos"],
+                datos["monto_inicial"],
+                row_id
+            )
+        )
+
+        conexion.commit()
+
+    conexion.close()
+
+    return jsonify({
+        "mensaje": "Prestamo actualizado correctamente"
+    })
+
+@app.delete("/prestamos/<int:row_id>")
+def eliminar_prestamo(row_id):
+
+    conexion = get_connection()
+
+    with conexion.cursor() as cursor:
+
+        cursor.execute(
+            """
+            DELETE FROM clientes_credito
+            WHERE row_id=%s
+            """,
+            (row_id,)
+        )
+
+        conexion.commit()
+
+    conexion.close()
+
+    return jsonify({
+        "mensaje": "Prestamo eliminado correctamente"
+    })
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)
