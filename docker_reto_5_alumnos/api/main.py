@@ -1,18 +1,22 @@
 from flask import Flask, jsonify, request
 import pymysql
-import requests
 
 app = Flask(__name__)
 
 
 def get_connection():
-    return pymysql.connect(
-        host="db",
-        user="clase",
-        password="clase123",
-        database="creditos",
-        cursorclass=pymysql.cursors.DictCursor
-    )
+    try:
+        return pymysql.connect(
+            host="db",
+            user="clase",
+            password="clase123",
+            database="creditos",
+            cursorclass=pymysql.cursors.DictCursor
+        )
+
+    except pymysql.MySQLError as e:
+        print(f"Error de conexión: {e}")
+        return None
 
 
 @app.get("/")
@@ -27,52 +31,82 @@ def obtener_prestamos():
 
     conexion = get_connection()
 
-    impago = request.args.get("impago")
+    if conexion is None:
+        return jsonify({
+            "error": "No se pudo conectar con la base de datos"
+        }), 500
 
-    with conexion.cursor() as cursor:
+    try:
 
-        if impago is not None:
+        impago = request.args.get("impago")
 
-            cursor.execute(
-                "SELECT * FROM clientes_credito WHERE impago=%s LIMIT 100",
-                (impago,)
-            )
+        with conexion.cursor() as cursor:
 
-        else:
+            if impago is not None:
 
-            cursor.execute(
-                "SELECT * FROM clientes_credito LIMIT 100"
-            )
+                cursor.execute(
+                    "SELECT * FROM clientes_credito WHERE impago=%s LIMIT 100",
+                    (impago,)
+                )
 
-        prestamos = cursor.fetchall()
+            else:
 
-    conexion.close()
+                cursor.execute(
+                    "SELECT * FROM clientes_credito LIMIT 100"
+                )
 
-    return jsonify(prestamos)
+            prestamos = cursor.fetchall()
+
+        return jsonify(prestamos)
+
+    except pymysql.MySQLError as e:
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+    finally:
+        conexion.close()
 
 @app.get("/prestamos/<int:id>")
 def obtener_prestamo(id):
 
     conexion = get_connection()
 
-    with conexion.cursor() as cursor:
-
-        cursor.execute(
-            "SELECT * FROM clientes_credito WHERE id=%s",
-            (id,)
-        )
-
-        prestamo = cursor.fetchone()
-
-    conexion.close()
-
-    if prestamo is None:
+    if conexion is None:
 
         return jsonify({
-            "error": "Prestamo no encontrado"
-        }), 404
+            "error": "No se pudo conectar con la base de datos"
+        }), 500
 
-    return jsonify(prestamo)
+    try:
+
+        with conexion.cursor() as cursor:
+
+            cursor.execute(
+                "SELECT * FROM clientes_credito WHERE id=%s",
+                (id,)
+            )
+
+            prestamo = cursor.fetchone()
+
+        if prestamo is None:
+
+            return jsonify({
+                "error": "Prestamo no encontrado"
+            }), 404
+
+        return jsonify(prestamo)
+
+    except pymysql.MySQLError as e:
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+    finally:
+
+        conexion.close()
 
 @app.get("/estadisticas")
 def obtener_estadisticas():
@@ -98,144 +132,170 @@ def obtener_estadisticas():
 @app.post("/prestamos")
 def crear_prestamo():
 
-    datos = request.json
+    if not request.json:
 
-    conexion = get_connection()
-
-    with conexion.cursor() as cursor:
-
-        cursor.execute(
-            """
-            INSERT INTO clientes_credito
-            (edad, ingresos, monto_inicial)
-            VALUES (%s, %s, %s)
-            """,
-            (
-                datos["edad"],
-                datos["ingresos"],
-                datos["monto_inicial"]
-            )
-        )
-
-        conexion.commit()
-
-    conexion.close()
-
-    return jsonify({
-        "mensaje": "Prestamo creado correctamente"
-    }), 201
-
-    @app.put("/prestamos/<int:row_id>")
-def actualizar_prestamo(row_id):
+        return jsonify({
+            "error": "JSON no proporcionado"
+        }), 400
 
     datos = request.json
 
+    if (
+        "edad" not in datos or
+        "ingresos" not in datos or
+        "monto_inicial" not in datos
+    ):
+
+        return jsonify({
+            "error": "Faltan campos obligatorios"
+        }), 400
+
     conexion = get_connection()
 
-    with conexion.cursor() as cursor:
+    if conexion is None:
 
-        cursor.execute(
-            """
-            UPDATE clientes_credito
-            SET edad=%s,
-                ingresos=%s,
-                monto_inicial=%s
-            WHERE row_id=%s
-            """,
-            (
-                datos["edad"],
-                datos["ingresos"],
-                datos["monto_inicial"],
-                row_id
+        return jsonify({
+            "error": "No se pudo conectar con la base de datos"
+        }), 500
+
+    try:
+
+        with conexion.cursor() as cursor:
+
+            cursor.execute(
+                """
+                INSERT INTO clientes_credito
+                (edad, ingresos, monto_inicial)
+                VALUES (%s, %s, %s)
+                """,
+                (
+                    datos["edad"],
+                    datos["ingresos"],
+                    datos["monto_inicial"]
+                )
             )
-        )
 
-        conexion.commit()
+            conexion.commit()
 
-    conexion.close()
+        return jsonify({
+            "mensaje": "Prestamo creado correctamente"
+        }), 201
 
-    return jsonify({
-        "mensaje": "Prestamo actualizado correctamente"
-    })
+    except pymysql.MySQLError as e:
 
-@app.delete("/prestamos/<int:row_id>")
-def eliminar_prestamo(row_id):
+        return jsonify({
+            "error": str(e)
+        }), 500
 
-    conexion = get_connection()
+    finally:
 
-    with conexion.cursor() as cursor:
-
-        cursor.execute(
-            """
-            DELETE FROM clientes_credito
-            WHERE row_id=%s
-            """,
-            (row_id,)
-        )
-
-        conexion.commit()
-
-    conexion.close()
-
-    return jsonify({
-        "mensaje": "Prestamo eliminado correctamente"
-    })
+        conexion.close()
 
 @app.put("/prestamos/<int:row_id>")
 def actualizar_prestamo(row_id):
 
+    if not request.json:
+
+        return jsonify({
+            "error": "JSON no proporcionado"
+        }), 400
+
     datos = request.json
 
     conexion = get_connection()
 
-    with conexion.cursor() as cursor:
+    if conexion is None:
 
-        cursor.execute(
-            """
-            UPDATE clientes_credito
-            SET edad=%s,
-                ingresos=%s,
-                monto_inicial=%s
-            WHERE row_id=%s
-            """,
-            (
-                datos["edad"],
-                datos["ingresos"],
-                datos["monto_inicial"],
-                row_id
+        return jsonify({
+            "error": "No se pudo conectar con la base de datos"
+        }), 500
+
+    try:
+
+        with conexion.cursor() as cursor:
+
+            cursor.execute(
+                """
+                UPDATE clientes_credito
+                SET edad=%s,
+                    ingresos=%s,
+                    monto_inicial=%s
+                WHERE row_id=%s
+                """,
+                (
+                    datos["edad"],
+                    datos["ingresos"],
+                    datos["monto_inicial"],
+                    row_id
+                )
             )
-        )
 
-        conexion.commit()
+            conexion.commit()
 
-    conexion.close()
+            if cursor.rowcount == 0:
 
-    return jsonify({
-        "mensaje": "Prestamo actualizado correctamente"
-    })
+                return jsonify({
+                    "error": "Prestamo no encontrado"
+                }), 404
+
+        return jsonify({
+            "mensaje": "Prestamo actualizado correctamente"
+        })
+
+    except pymysql.MySQLError as e:
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+    finally:
+
+        conexion.close()
 
 @app.delete("/prestamos/<int:row_id>")
 def eliminar_prestamo(row_id):
 
     conexion = get_connection()
 
-    with conexion.cursor() as cursor:
+    if conexion is None:
 
-        cursor.execute(
-            """
-            DELETE FROM clientes_credito
-            WHERE row_id=%s
-            """,
-            (row_id,)
-        )
+        return jsonify({
+            "error": "No se pudo conectar con la base de datos"
+        }), 500
 
-        conexion.commit()
+    try:
 
-    conexion.close()
+        with conexion.cursor() as cursor:
 
-    return jsonify({
-        "mensaje": "Prestamo eliminado correctamente"
-    })
+            cursor.execute(
+                """
+                DELETE FROM clientes_credito
+                WHERE row_id=%s
+                """,
+                (row_id,)
+            )
+
+            conexion.commit()
+
+            if cursor.rowcount == 0:
+
+                return jsonify({
+                    "error": "Prestamo no encontrado"
+                }), 404
+
+        return jsonify({
+            "mensaje": "Prestamo eliminado correctamente"
+        })
+
+    except pymysql.MySQLError as e:
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+    finally:
+
+        conexion.close()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)
