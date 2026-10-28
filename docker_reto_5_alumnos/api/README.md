@@ -129,3 +129,19 @@ Crea un nuevo préstamo.
 
 ### PUT /prestamos/<row_id>
 Actualiza un préstamo existente.
+
+### GET /indicadores-pobreza
+Consume una API externa del World Bank y devuelve información relacionada con el Índice de Gini de España.
+
+Este endpoint demuestra la integración de APIs de terceros mediante la librería requests.
+
+Ejemplo
+GET /indicadores-pobreza
+### Respuesta
+```json
+{
+    "pais": "Spain",
+    "indicador": "Gini index",
+    "año": "2025",
+    "valor": 31.1
+}
