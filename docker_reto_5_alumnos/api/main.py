@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 import pymysql
+import requests
 
 app = Flask(__name__)
 
@@ -296,6 +297,41 @@ def eliminar_prestamo(row_id):
     finally:
 
         conexion.close()
+
+
+@app.get("/indicadores-pobreza")
+def obtener_indicadores_pobreza():
+
+    try:
+
+        url = (
+            "https://api.worldbank.org/v2/country/ESP/"
+            "indicator/SI.POV.GINI?format=json"
+        )
+
+        respuesta = requests.get(url)
+
+        respuesta.raise_for_status()
+
+        datos = respuesta.json()
+
+        for registro in datos[1]:
+
+            if registro["value"] is not None:
+
+                return jsonify({
+                    "pais": registro["country"]["value"],
+                    "indicador": registro["indicator"]["value"],
+                    "año": registro["date"],
+                    "valor": registro["value"]
+                })
+
+    except requests.RequestException as e:
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)
