@@ -7,7 +7,7 @@ repositorio reto 5 equipo naranja
 
 API REST desarrollada con Flask para la gestión de préstamos y seguros de protección de pagos del Reto 5.
 
-La API permite consultar información almacenada en una base de datos MySQL y realizar operaciones CRUD sobre los registros de préstamos.
+La API permite consultar información almacenada en una base de datos MySQL, realizar operaciones CRUD sobre los registros de préstamos e integrar datos procedentes de APIs externas mediante peticiones HTTP.
 
 ## Tecnologías utilizadas
 
@@ -15,6 +15,7 @@ La API permite consultar información almacenada en una base de datos MySQL y re
 - Flask
 - MySQL
 - PyMySQL
+- Requests
 - Docker
 - Postman
 - Power BI
